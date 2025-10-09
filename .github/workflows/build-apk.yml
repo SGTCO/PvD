@@ -31,8 +31,10 @@ jobs:
       - name: Copy website files
         run: |
           mkdir -p app/public
-          cp -r ./* app/public/
+          shopt -s extglob
+          cp -r !(app|.github) app/public/
           echo "✅ Website files copied to app/public"
+
 
       # 6️⃣ 初始化 Capacitor Android 專案
       - name: Initialize Android project
