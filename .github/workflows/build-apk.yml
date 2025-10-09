@@ -1,0 +1,51 @@
+name: Build APK from Web
+
+on:
+  release:
+    types: [published]  # 當你建立新的 release 時自動觸發
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      # 1️⃣ 安裝 Capacitor / Android 環境
+      - name: Install Capacitor CLI
+        run: npm install -g @capacitor/core @capacitor/cli
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      # 2️⃣ 準備網站檔案
+      - name: Copy website files
+        run: |
+          mkdir -p app/public
+          cp -r ./dist/* app/public/
+
+      # 3️⃣ 初始化 Android 專案
+      - name: Create Android project
+        run: |
+          npx cap init "DoLWebApp" "com.dol.webapp" --web-dir app/public
+          npx cap add android
+
+      # 4️⃣ 打包 APK
+      - name: Build Android APK
+        run: |
+          cd android
+          ./gradlew assembleDebug
+
+      # 5️⃣ 上傳 APK 到 Release
+      - name: Upload APK to release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: android/app/build/outputs/apk/debug/app-debug.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

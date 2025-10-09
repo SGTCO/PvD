@@ -1,0 +1,39 @@
+{
+  "background_color": "#111111",
+  "categories": [
+    "games"
+  ],
+  "description": "Degrees of Lewdity is a text-based erotic sandbox roleplaying game, currently in development by Vrelnir",
+  "dir": "ltr",
+  "display": "standalone",
+  "icons": [
+    {
+      "purpose": "any",
+      "src": "/PvD/icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "lang": "zh",
+  "name": "Degrees of Lewdity Zh-TW",
+  "orientation": "portrait",
+  "scope": "/PvD/",
+  "short_name": "DoL-tw",
+  "start_url": "/PvD/",
+  "theme_color": "#230034",
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Main",
+      "url": "/PvD/",
+      "description": "Main page"
+    }
+  ],
+  "id": "SGTCO/PvD",
+  "display_override": [
+    "window-controls-overlay",
+    "standalone",
+    "minimal-ui",
+    "browser"
+  ]
+}
