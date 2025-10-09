@@ -29,7 +29,14 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      # 5️⃣ 複製網站檔案
+      # 5️⃣ 安裝 Java 17
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      # 6️⃣ 複製網站檔案
       - name: Copy website files
         shell: bash
         run: |
@@ -38,20 +45,25 @@ jobs:
           cp -r !(app|.github|.git|node_modules) app/public/
           echo "✅ Website files copied to app/public"
 
-      # 6️⃣ 初始化 Capacitor Android 專案
+      # 7️⃣ 初始化 Capacitor Android 專案
       - name: Initialize Capacitor and Android
         run: |
           npx cap init "PvDWebApp" "com.sgtco.pvd" --web-dir app/public
           npx cap add android
 
-      # 7️⃣ 打包 APK
+      # 8️⃣ 強制 Gradle 使用 Java 17
+      - name: Force Gradle to use Java 17
+        run: |
+          echo "org.gradle.java.home=/usr/lib/jvm/temurin-17-jdk-amd64" >> android/gradle.properties
+
+      # 9️⃣ 打包 APK
       - name: Build Android APK
         run: |
           cd android
           ./gradlew assembleDebug
           echo "✅ APK build finished"
 
-      # 8️⃣ 上傳到 Release
+      # 🔟 上傳到 Release
       - name: Upload APK to release
         uses: softprops/action-gh-release@v1
         with:
