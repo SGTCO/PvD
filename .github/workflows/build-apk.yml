@@ -51,10 +51,14 @@ jobs:
           npx cap init "PvDWebApp" "com.sgtco.pvd" --web-dir app/public
           npx cap add android
 
-      # 8️⃣ 強制 Gradle 使用 Java 17
-      - name: Force Gradle to use Java 17
+      # 8️⃣ 修正 Gradle Java 設定（避免使用 Java 21）
+      - name: Patch Gradle Java version to 17
         run: |
-          echo "org.gradle.java.home=/usr/lib/jvm/temurin-17-jdk-amd64" >> android/gradle.properties
+          sed -i 's/sourceCompatibility JavaVersion.VERSION_21/sourceCompatibility JavaVersion.VERSION_17/g' android/capacitor-android/build.gradle || true
+          sed -i 's/targetCompatibility JavaVersion.VERSION_21/targetCompatibility JavaVersion.VERSION_17/g' android/capacitor-android/build.gradle || true
+          sed -i 's/sourceCompatibility JavaVersion.VERSION_21/sourceCompatibility JavaVersion.VERSION_17/g' android/app/build.gradle || true
+          sed -i 's/targetCompatibility JavaVersion.VERSION_21/targetCompatibility JavaVersion.VERSION_17/g' android/app/build.gradle || true
+          echo "✅ Forced Gradle to use Java 17 for compilation"
 
       # 9️⃣ 打包 APK
       - name: Build Android APK
