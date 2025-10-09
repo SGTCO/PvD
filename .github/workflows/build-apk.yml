@@ -2,47 +2,52 @@ name: Build APK from Web
 
 on:
   release:
-    types: [published]  # 當你建立新的 release 時自動觸發
+    types: [published]  # 當你在 GitHub 建立並「發布」一個 Release 時觸發
 
 jobs:
   build-apk:
     runs-on: ubuntu-latest
 
     steps:
+      # 1️⃣ 取得你的 repo 原始碼
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
+      # 2️⃣ 安裝 Node.js
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: 20
 
-      # 1️⃣ 安裝 Capacitor / Android 環境
+      # 3️⃣ 安裝 Capacitor CLI
       - name: Install Capacitor CLI
         run: npm install -g @capacitor/core @capacitor/cli
 
+      # 4️⃣ 安裝 Android SDK
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      # 2️⃣ 準備網站檔案
+      # 5️⃣ 複製整個網站到 app/public
       - name: Copy website files
         run: |
           mkdir -p app/public
-          cp -r ./dist/* app/public/
+          cp -r ./* app/public/
+          echo "✅ Website files copied to app/public"
 
-      # 3️⃣ 初始化 Android 專案
-      - name: Create Android project
+      # 6️⃣ 初始化 Capacitor Android 專案
+      - name: Initialize Android project
         run: |
-          npx cap init "DoLWebApp" "com.dol.webapp" --web-dir app/public
+          npx cap init "PvDWebApp" "com.sgtco.pvd" --web-dir app/public
           npx cap add android
 
-      # 4️⃣ 打包 APK
+      # 7️⃣ 打包 APK
       - name: Build Android APK
         run: |
           cd android
           ./gradlew assembleDebug
+          echo "✅ APK build finished"
 
-      # 5️⃣ 上傳 APK 到 Release
+      # 8️⃣ 上傳 APK 到 Release
       - name: Upload APK to release
         uses: softprops/action-gh-release@v1
         with:
