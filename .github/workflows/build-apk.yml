@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ 取得 repo
+      # 1️⃣ 取得你的 repo
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -19,7 +19,7 @@ jobs:
         with:
           node-version: 20
 
-      # 3️⃣ 建立 npm 專案 + 安裝 Capacitor
+      # 3️⃣ 初始化 npm 專案 + 安裝 Capacitor
       - name: Setup npm and Capacitor
         run: |
           npm init -y
@@ -36,7 +36,7 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      # 6️⃣ 複製網站檔案
+      # 6️⃣ 複製網站檔案（排除 app/.github/.git）
       - name: Copy website files
         shell: bash
         run: |
@@ -45,50 +45,50 @@ jobs:
           cp -r !(app|.github|.git|node_modules) app/public/
           echo "✅ Website files copied to app/public"
 
-      # 7️⃣ 初始化 Capacitor Android 專案
+      # 7️⃣ 初始化 Capacitor 專案與 Android 平台
       - name: Initialize Capacitor and Android
         run: |
           npx cap init "PvDWebApp" "com.sgtco.pvd" --web-dir app/public
           npx cap add android
 
-      # 8️⃣ 全面修正 Gradle Java 設定（覆蓋所有模組）
+      # 8️⃣ 全面強制 Java 17（覆蓋所有設定）
       - name: Force all Gradle modules to use Java 17
         run: |
+          export JAVA_HOME=/usr/lib/jvm/temurin-17-jdk-amd64
+          export PATH="$JAVA_HOME/bin:$PATH"
+          echo "org.gradle.java.home=$JAVA_HOME" >> android/gradle.properties
+          echo "android.compileOptions.sourceCompatibility=17" >> android/gradle.properties
+          echo "android.compileOptions.targetCompatibility=17" >> android/gradle.properties
+          echo "compileOptions { sourceCompatibility JavaVersion.VERSION_17 targetCompatibility JavaVersion.VERSION_17 }" >> android/app/build.gradle
           find android -type f -name "*.gradle" -print0 | xargs -0 sed -i \
             -e 's/JavaVersion.VERSION_21/JavaVersion.VERSION_17/g' \
             -e 's/sourceCompatibility = 21/sourceCompatibility = 17/g' \
             -e 's/targetCompatibility = 21/targetCompatibility = 17/g' \
             -e 's/sourceCompatibility JavaVersion.VERSION_21/sourceCompatibility JavaVersion.VERSION_17/g' \
             -e 's/targetCompatibility JavaVersion.VERSION_21/targetCompatibility JavaVersion.VERSION_17/g'
-          echo "✅ All Gradle files patched to Java 17"
+          echo "✅ All Gradle modules patched to Java 17"
 
-      # 9️⃣ 在 gradle.properties 明確指定 Java 17
-      - name: Force Gradle to use Java 17 globally
-        run: |
-          echo "org.gradle.java.home=/usr/lib/jvm/temurin-17-jdk-amd64" >> android/gradle.properties
-          echo "android.compileOptions.sourceCompatibility=17" >> android/gradle.properties
-          echo "android.compileOptions.targetCompatibility=17" >> android/gradle.properties
-          echo "✅ gradle.properties updated"
-
-      # 9️⃣-2 打包 APK
+      # 9️⃣ 打包 APK
       - name: Build Android APK
         run: |
           export JAVA_HOME=/usr/lib/jvm/temurin-17-jdk-amd64
+          export PATH="$JAVA_HOME/bin:$PATH"
           cd android
           ./gradlew assembleDebug
           echo "✅ APK build finished"
 
-      # 🔟 上傳到 Release
-      - name: Upload APK to release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: android/app/build/outputs/apk/debug/app-debug.apk
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
+      # 🔟 上傳問題報告（若失敗可下載查看）
       - name: Upload Gradle problem report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: gradle-problems-report
           path: android/build/reports/problems
+
+      # ⓫ 上傳 APK 到 Release
+      - name: Upload APK to release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: android/app/build/outputs/apk/debug/app-debug.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
