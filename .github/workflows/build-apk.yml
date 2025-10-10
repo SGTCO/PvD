@@ -57,12 +57,11 @@ jobs:
           export JAVA_HOME=/usr/lib/jvm/temurin-17-jdk-amd64
           export PATH="$JAVA_HOME/bin:$PATH"
 
+          # 更新 gradle.properties
           echo "org.gradle.java.home=$JAVA_HOME" >> android/gradle.properties
-          echo "android.compileOptions.sourceCompatibility=17" >> android/gradle.properties
-          echo "android.compileOptions.targetCompatibility=17" >> android/gradle.properties
-          echo "kotlin.jvm.target.validation.mode=warning" >> android/gradle.properties
+          echo "org.gradle.jvmargs=-Xmx2g -Dfile.encoding=UTF-8" >> android/gradle.properties
 
-          # ✅ 修正 Kotlin DSL 檔（*.gradle.kts）與普通 Gradle 檔
+          # 強制修改所有 build.gradle 與 build.gradle.kts
           find android -type f \( -name "*.gradle" -o -name "*.gradle.kts" \) -print0 | xargs -0 sed -i \
             -e 's/JavaVersion.VERSION_21/JavaVersion.VERSION_17/g' \
             -e 's/sourceCompatibility = JavaVersion.VERSION_21/sourceCompatibility = JavaVersion.VERSION_17/g' \
@@ -71,14 +70,17 @@ jobs:
             -e 's/targetCompatibility = 21/targetCompatibility = 17/g' \
             -e 's/jvmTarget = "21"/jvmTarget = "17"/g'
 
-          # ✅ 確保 app module 有 compileOptions（插在 android {} 裡）
+          # 確保 app/build.gradle 有 compileOptions（放在 android {} 裡）
           sed -i '/android {/a\
               compileOptions {\
                   sourceCompatibility JavaVersion.VERSION_17\
                   targetCompatibility JavaVersion.VERSION_17\
+              }\
+              kotlinOptions {\
+                  jvmTarget = "17"\
               }' android/app/build.gradle || true
 
-          echo "✅ All Gradle and Kotlin DSL files patched to Java 17"
+          echo "✅ All Gradle modules patched to Java 17"
 
       - name: Verify Java version
         run: |
