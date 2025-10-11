@@ -36,14 +36,21 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      # 6️⃣ 複製網站檔案（排除 app/.github/.git）
-      - name: Copy website files
+      # 6️⃣ 複製網站檔案（排除 .github/.git）
+      - name: Copy website files for Capacitor
         shell: bash
         run: |
           mkdir -p app/public
           shopt -s extglob
-          cp -r !(app|.github|.git|node_modules) app/public/
+          # 複製 repo 根目錄下的所有靜態網站檔案（排除掉 CI 設定與 node_modules）
+          cp -r !(android|app|.github|.git|node_modules) app/public/ 2>/dev/null || true
           echo "✅ Website files copied to app/public"
+
+      # 建立 Android 專案
+      - name: Generate Android project (Capacitor)
+        run: |
+          npm install -g @capacitor/cli @capacitor/android
+          npx cap add android
 
       # 7️⃣ 初始化 Capacitor 專案與 Android 平台
       - name: Patch Android Gradle files to use Java 17 & diagnostics
