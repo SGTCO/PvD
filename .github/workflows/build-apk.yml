@@ -57,24 +57,23 @@ jobs:
           export JAVA_HOME=/usr/lib/jvm/temurin-17-jdk-amd64
           export PATH="$JAVA_HOME/bin:$PATH"
 
-          # 設定 gradle.properties
           echo "org.gradle.java.home=$JAVA_HOME" >> android/gradle.properties
           echo "org.gradle.jvmargs=-Xmx2g -Dfile.encoding=UTF-8" >> android/gradle.properties
 
-          # 修正 Java/Kotlin DSL 版本
-          find android -type f \( -name "*.gradle" -o -name "*.gradle.kts" \) -print0 | xargs -0 sed -i \
+          # 若找不到任何檔案也不報錯
+          find android -type f \( -name "*.gradle" -o -name "*.gradle.kts" \) -exec sed -i \
             -e 's/JavaVersion.VERSION_21/JavaVersion.VERSION_17/g' \
             -e 's/sourceCompatibility = JavaVersion.VERSION_21/sourceCompatibility = JavaVersion.VERSION_17/g' \
             -e 's/targetCompatibility = JavaVersion.VERSION_21/targetCompatibility = JavaVersion.VERSION_17/g' \
             -e 's/sourceCompatibility = 21/sourceCompatibility = 17/g' \
             -e 's/targetCompatibility = 21/targetCompatibility = 17/g' \
-            -e 's/jvmTarget = "21"/jvmTarget = "17"/g'
+            -e 's/jvmTarget = "21"/jvmTarget = "17"/g' {} + || true
 
-          # 🔧 對 Kotlin DSL (java { ... }) 結構強制改寫
-          find android -type f -name "*.gradle.kts" -print0 | xargs -0 sed -i \
-            -e 's/java {/java {\n    sourceCompatibility = JavaVersion.VERSION_17\n    targetCompatibility = JavaVersion.VERSION_17/g'
+          # 修改 Kotlin DSL (java { ... }) 結構
+          find android -type f -name "*.gradle.kts" -exec sed -i \
+            -e 's/java {/java {\n    sourceCompatibility = JavaVersion.VERSION_17\n    targetCompatibility = JavaVersion.VERSION_17/g' {} + || true
 
-          # 🔧 補上 compileSdkVersion 與 compileOptions
+          # 補上 compileSdkVersion 與 compileOptions
           sed -i '/android {/a\
               compileSdkVersion 34\
               defaultConfig {\
