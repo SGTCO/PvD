@@ -51,17 +51,29 @@ jobs:
           npx cap init "PvDWebApp" "com.sgtco.pvd" --web-dir app/public
           npx cap add android
 
-      # 8️⃣ 全面強制 Java 17（覆蓋所有設定）
-      - name: Force all Gradle modules to use Java 17
+      # 8️⃣ 全面強制 Java 17 並補齊必要的 Android SDK 設定
+      - name: Force Gradle modules to use Java 17
         run: |
           export JAVA_HOME=/usr/lib/jvm/temurin-17-jdk-amd64
           export PATH="$JAVA_HOME/bin:$PATH"
 
-          # 更新 gradle.properties
+          # 設定 Gradle 屬性
           echo "org.gradle.java.home=$JAVA_HOME" >> android/gradle.properties
           echo "org.gradle.jvmargs=-Xmx2g -Dfile.encoding=UTF-8" >> android/gradle.properties
 
-          # 強制修改所有 build.gradle 與 build.gradle.kts
+          # 若 app/build.gradle 尚未指定 compileSdkVersion，補上預設
+          sed -i '/android {/a\
+              compileSdkVersion 34\
+              defaultConfig {\
+                  targetSdkVersion 34\
+                  minSdkVersion 22\
+              }\
+              compileOptions {\
+                  sourceCompatibility JavaVersion.VERSION_17\
+                  targetCompatibility JavaVersion.VERSION_17\
+              }' android/app/build.gradle || true
+
+          # 全面替換任何殘留的 Java 21 或 Kotlin 21 設定
           find android -type f \( -name "*.gradle" -o -name "*.gradle.kts" \) -print0 | xargs -0 sed -i \
             -e 's/JavaVersion.VERSION_21/JavaVersion.VERSION_17/g' \
             -e 's/sourceCompatibility = JavaVersion.VERSION_21/sourceCompatibility = JavaVersion.VERSION_17/g' \
@@ -70,17 +82,7 @@ jobs:
             -e 's/targetCompatibility = 21/targetCompatibility = 17/g' \
             -e 's/jvmTarget = "21"/jvmTarget = "17"/g'
 
-          # 確保 app/build.gradle 有 compileOptions（放在 android {} 裡）
-          sed -i '/android {/a\
-              compileOptions {\
-                  sourceCompatibility JavaVersion.VERSION_17\
-                  targetCompatibility JavaVersion.VERSION_17\
-              }\
-              kotlinOptions {\
-                  jvmTarget = "17"\
-              }' android/app/build.gradle || true
-
-          echo "✅ All Gradle modules patched to Java 17"
+          echo "✅ All Gradle modules patched for Java 17 and Android SDK 34"
 
       - name: Verify Java version
         run: |
