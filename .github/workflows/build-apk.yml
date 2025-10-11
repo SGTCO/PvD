@@ -51,8 +51,7 @@ jobs:
           npx cap init "PvDWebApp" "com.sgtco.pvd" --web-dir app/public
           npx cap add android
 
-      # 8️⃣ 修正 Capacitor 生成後的所有 Gradle 檔案
-      - name: Patch all Gradle modules to Java 17
+      - name: Force Capacitor Android modules to use Java 17
         run: |
           export JAVA_HOME=/usr/lib/jvm/temurin-17-jdk-amd64
           export PATH="$JAVA_HOME/bin:$PATH"
@@ -60,25 +59,35 @@ jobs:
           echo "org.gradle.java.home=$JAVA_HOME" >> android/gradle.properties
           echo "org.gradle.jvmargs=-Xmx2g -Dfile.encoding=UTF-8" >> android/gradle.properties
 
-          # ====== 精準覆蓋 capacitor-android 與 cordova plugin 的設定 ======
-          for f in \
-            "android/capacitor-android/build.gradle.kts" \
-            "android/capacitor-cordova-android-plugins/build.gradle.kts" \
-            "android/app/build.gradle"
-          do
-            if [ -f "$f" ]; then
-              echo "🔧 Patching $f ..."
-              sed -i 's/JavaVersion.VERSION_21/JavaVersion.VERSION_17/g' "$f"
-              sed -i 's/sourceCompatibility = JavaVersion.VERSION_21/sourceCompatibility = JavaVersion.VERSION_17/g' "$f"
-              sed -i 's/targetCompatibility = JavaVersion.VERSION_21/targetCompatibility = JavaVersion.VERSION_17/g' "$f"
-              sed -i 's/sourceCompatibility = 21/sourceCompatibility = 17/g' "$f"
-              sed -i 's/targetCompatibility = 21/targetCompatibility = 17/g' "$f"
-              sed -i 's/jvmTarget = "21"/jvmTarget = "17"/g' "$f"
-              sed -i 's/java {/java {\n    sourceCompatibility = JavaVersion.VERSION_17\n    targetCompatibility = JavaVersion.VERSION_17/g' "$f"
-            fi
-          done
+          # ====== 精準修正 capacitor-android (Kotlin DSL) ======
+          CAP_FILE="android/capacitor-android/build.gradle.kts"
+          if [ -f "$CAP_FILE" ]; then
+            echo "🔧 Overwriting Java config in $CAP_FILE ..."
+            sed -i '/java {/,$d' "$CAP_FILE" # 移除舊的 java {...} 區塊
+            cat <<'EOF' >> "$CAP_FILE"
 
-          # ====== 補上 compileSdkVersion 與 compileOptions (app module) ======
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+EOF
+          fi
+
+          # ====== 同步修正 cordova plugin ======
+          CORDOVA_FILE="android/capacitor-cordova-android-plugins/build.gradle.kts"
+          if [ -f "$CORDOVA_FILE" ]; then
+            echo "🔧 Overwriting Java config in $CORDOVA_FILE ..."
+            sed -i '/java {/,$d' "$CORDOVA_FILE"
+            cat <<'EOF' >> "$CORDOVA_FILE"
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+EOF
+          fi
+
+          # ====== app module 確保 compileOptions 正確 ======
           if grep -q "android {" android/app/build.gradle; then
             sed -i '/android {/a\
                 compileSdkVersion 34\
