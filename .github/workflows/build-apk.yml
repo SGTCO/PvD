@@ -123,11 +123,24 @@ jobs:
       # 9️⃣ 打包 APK
       - name: Build Android APK
         run: |
+          set -eu
           export JAVA_HOME=/usr/lib/jvm/temurin-17-jdk-amd64
           export PATH="$JAVA_HOME/bin:$PATH"
+
           cd android
-          ./gradlew assembleDebug
-          echo "✅ APK build finished"
+
+          # 如果 gradlew 不存在，自動產生 Gradle wrapper
+          if [ ! -f "./gradlew" ]; then
+            echo "gradlew not found — installing Gradle wrapper..."
+            gradle wrapper
+          fi
+
+          chmod +x ./gradlew
+
+          echo "🧱 Starting Gradle build..."
+          ./gradlew assembleDebug --no-daemon --stacktrace
+
+          echo "✅ Build finished. APKs should be in app/build/outputs/apk/debug/"
 
       # 🔟 上傳問題報告（若失敗可下載查看）
       - name: Upload Gradle problem report
