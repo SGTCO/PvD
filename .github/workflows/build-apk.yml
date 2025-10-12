@@ -49,7 +49,17 @@ jobs:
           dependencies {}
           EOF
 
-          echo "rootProject.name = 'PvDWebApp'" > settings.gradle
+          cat > settings.gradle <<'EOF'
+          rootProject.name = "PvDWebApp"
+
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          EOF
 
           cat > app/src/main/AndroidManifest.xml <<'EOF'
           <manifest xmlns:android="http://schemas.android.com/apk/res/android"
