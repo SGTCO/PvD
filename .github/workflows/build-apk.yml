@@ -1,4 +1,4 @@
-name: Build APK from Web
+name: Build Static WebView APK
 
 on:
   release:
@@ -9,111 +9,136 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 🧭 取得 Repo
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # ⚙️ 設定 Node.js
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
-
-      # ☕ 安裝 Java 17 (Temurin)
       - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
 
-      # 📦 安裝前端依賴並編譯 Web 專案
-      - name: Install dependencies & build web app
-        working-directory: app
+      - name: Create Android project for static site
         run: |
-          npm ci
-          npm run build
+          set -eu
+          mkdir -p android/app/src/main/{java/com/sgtco/pvd,assets,res/layout}
+          cd android
 
-      # ⚡ 建立 Capacitor 專案
-      - name: Generate Android project (Capacitor)
-        working-directory: app
-        run: |
-          npx cap init "PvDWebApp" "com.sgtco.pvd" --web-dir public --npm-client npm
-          npm install @capacitor/android
-          npx cap add android
+          cat > build.gradle <<'EOF'
+          plugins {
+              id 'com.android.application' version '8.5.0'
+          }
 
-      # 🚫 修正 @capacitor/android 的 JDK 版本要求
-      - name: Force downgrade Capacitor Android toolchain to Java 17
-        working-directory: app
-        run: |
-          echo "🔧 Removing toolchain JDK 21 requirement from @capacitor/android ..."
-          find node_modules/@capacitor/android -type f -name "build.gradle*" -print0 | xargs -0 sed -i \
-            -e '/toolchain {/,/}/d' \
-            -e '/languageVersion\.set(JavaLanguageVersion\.of(21))/d' \
-            -e 's/JavaLanguageVersion\.of(21)/JavaLanguageVersion.of(17)/g' \
-            -e 's/JavaVersion.VERSION_21/JavaVersion.VERSION_17/g' \
-            -e 's/jvmTarget = "21"/jvmTarget = "17"/g'
-          echo "✅ Capacitor Android toolchain patched to Java 17"
+          android {
+              compileSdk 34
+              defaultConfig {
+                  applicationId "com.sgtco.pvd"
+                  minSdk 23
+                  targetSdk 34
+                  versionCode 1
+                  versionName "1.0"
+              }
+              buildTypes {
+                  release {
+                      minifyEnabled false
+                      shrinkResources false
+                  }
+              }
+          }
 
-      # 🔧 強制 Android Gradle 使用 Java 17 編譯
-      - name: Patch Android Gradle files to use Java 17
-        working-directory: app
-        run: |
-          echo "🔧 Patching Android Gradle config for Java 17..."
-          find android -type f -name "build.gradle*" -print0 | while IFS= read -r -d '' file; do
-            echo "Patching $file"
-            sed -i '/sourceCompatibility/d' "$file" || true
-            sed -i '/targetCompatibility/d' "$file" || true
-            sed -i '/jvmTarget/d' "$file" || true
-            cat <<'EOF' >> "$file"
-
-            android {
-                compileOptions {
-                    sourceCompatibility = JavaVersion.VERSION_17
-                    targetCompatibility = JavaVersion.VERSION_17
-                }
-            }
-
-            kotlinOptions {
-                jvmTarget = "17"
-            }
+          dependencies {}
           EOF
-          done
-          echo "✅ Android Gradle files patched to Java 17"
 
-      # ☕ 驗證 Java 版本
-      - name: Verify Java version
-        run: |
-          java -version
-          javac -version
-          echo "JAVA_HOME=$JAVA_HOME"
+          echo "rootProject.name = 'PvDWebApp'" > settings.gradle
 
-      # 🧩 建立 Gradle Wrapper（若不存在）
-      - name: Ensure Gradle Wrapper
-        working-directory: app/android
-        run: |
-          if [ ! -f gradlew ]; then
-            echo "gradlew not found — installing Gradle wrapper..."
-            gradle wrapper
-          fi
-          chmod +x gradlew
+          cat > app/src/main/AndroidManifest.xml <<'EOF'
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+              package="com.sgtco.pvd">
 
-      # 🚀 編譯 APK
-      - name: Build Android APK
-        working-directory: app/android
+              <application
+                  android:label="PvDWebApp"
+                  android:usesCleartextTraffic="true"
+                  android:allowBackup="false">
+                  <activity android:name=".MainActivity"
+                      android:exported="true"
+                      android:configChanges="orientation|keyboardHidden|screenSize"
+                      android:screenOrientation="portrait">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          EOF
+
+          cat > app/src/main/res/layout/activity_main.xml <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <WebView xmlns:android="http://schemas.android.com/apk/res/android"
+              android:id="@+id/webview"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent" />
+          EOF
+
+          cat > app/src/main/java/com/sgtco/pvd/MainActivity.java <<'EOF'
+          package com.sgtco.pvd;
+
+          import android.annotation.SuppressLint;
+          import android.os.Bundle;
+          import android.webkit.WebSettings;
+          import android.webkit.WebView;
+          import android.webkit.WebViewClient;
+          import androidx.appcompat.app.AppCompatActivity;
+          import android.view.MotionEvent;
+
+          public class MainActivity extends AppCompatActivity {
+              private WebView webView;
+
+              @SuppressLint("SetJavaScriptEnabled")
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  setContentView(R.layout.activity_main);
+
+                  webView = findViewById(R.id.webview);
+                  WebSettings webSettings = webView.getSettings();
+                  webSettings.setJavaScriptEnabled(true);
+                  webSettings.setDomStorageEnabled(true);
+                  webView.setWebViewClient(new WebViewClient());
+
+                  // 禁止下拉刷新
+                  webView.setOnTouchListener((v, event) -> event.getAction() == MotionEvent.ACTION_MOVE);
+
+                  // 載入本地靜態網站
+                  webView.loadUrl("file:///android_asset/index.html");
+              }
+          }
+          EOF
+
+          cat > gradle.properties <<'EOF'
+          org.gradle.jvmargs=-Xmx2g
+          android.useAndroidX=true
+          android.enableJetifier=true
+          EOF
+
+          # 將根目錄的靜態網站打包進 assets
+          cp -r ../* app/src/main/assets/ || echo "⚠️ no static files found"
+
+      - name: Build APK
+        working-directory: android
         run: |
+          gradle wrapper
           ./gradlew assembleDebug --no-daemon --stacktrace
 
-      # 📦 上傳 APK 成品到 Artifacts
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: PvD-debug-apk
-          path: app/android/app/build/outputs/apk/debug/*.apk
+          name: PvDWebApp-debug-apk
+          path: android/app/build/outputs/apk/debug/*.apk
 
-      # 🪶 自動附加到 Release（可選）
-      - name: Attach APK to GitHub Release
+      - name: Attach APK to Release
         uses: softprops/action-gh-release@v2
         with:
-          files: app/android/app/build/outputs/apk/debug/*.apk
+          files: android/app/build/outputs/apk/debug/*.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
