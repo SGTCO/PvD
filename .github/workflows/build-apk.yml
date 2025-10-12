@@ -9,34 +9,34 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ 取得你的 repo
+      # 1 取得你的 repo
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2️⃣ 安裝 Node.js
+      # 2 安裝 Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      # 3️⃣ 初始化 npm 專案 + 安裝 Capacitor
+      # 3 初始化 npm 專案 + 安裝 Capacitor
       - name: Setup npm and Capacitor
         run: |
           npm init -y
           npm install @capacitor/core @capacitor/cli @capacitor/android --save-dev
 
-      # 4️⃣ 安裝 Android SDK
+      # 4 安裝 Android SDK
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      # 5️⃣ 安裝 Java 17
+      # 5 安裝 Java 17
       - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      # 6️⃣ 複製網站檔案（排除 .github/.git）
+      # 6 複製網站檔案（排除 .github/.git）
       - name: Copy website files for Capacitor
         shell: bash
         run: |
@@ -46,13 +46,24 @@ jobs:
           cp -r !(android|app|.github|.git|node_modules) app/public/ 2>/dev/null || true
           echo "✅ Website files copied to app/public"
 
-      # 建立 Android 專案
+      # 7 建立 Android 專案
       - name: Generate Android project (Capacitor)
         run: |
           npm install -g @capacitor/cli @capacitor/android
           npx cap add android
 
-      # 7️⃣ 初始化 Capacitor 專案與 Android 平台
+      # 8 初始化 Capacitor 專案與 Android 平台
+      - name: Patch Capacitor Android source in node_modules to use Java 17
+        run: |
+          echo "🔧 Patching @capacitor/android Gradle scripts..."
+          find node_modules/@capacitor/android -type f -name "*.gradle.kts" -print0 | xargs -0 sed -i \
+            -e 's/JavaVersion.VERSION_21/JavaVersion.VERSION_17/g' \
+            -e 's/sourceCompatibility = JavaVersion.VERSION_21/sourceCompatibility = JavaVersion.VERSION_17/g' \
+            -e 's/targetCompatibility = JavaVersion.VERSION_21/targetCompatibility = JavaVersion.VERSION_17/g' \
+            -e 's/JavaLanguageVersion.of(21)/JavaLanguageVersion.of(17)/g' \
+            -e 's/jvmTarget = "21"/jvmTarget = "17"/g' || true
+          echo "✅ Patched all @capacitor/android Gradle files to Java 17"
+
       - name: Patch Android Gradle files to use Java 17 & diagnostics
         run: |
           set -eu
@@ -127,7 +138,7 @@ jobs:
           javac -version
           echo "JAVA_HOME=$JAVA_HOME"
 
-      # 9️⃣ 打包 APK
+      # 9 打包 APK
       - name: Build Android APK
         run: |
           set -eu
@@ -149,7 +160,7 @@ jobs:
 
           echo "✅ Build finished. APKs should be in app/build/outputs/apk/debug/"
 
-      # 🔟 上傳問題報告（若失敗可下載查看）
+      # 10 上傳問題報告（若失敗可下載查看）
       - name: Upload Gradle problem report
         if: always()
         uses: actions/upload-artifact@v4
@@ -157,7 +168,7 @@ jobs:
           name: gradle-problems-report
           path: android/build/reports/problems
 
-      # ⓫ 上傳 APK 到 Release
+      # 11 上傳 APK 到 Release
       - name: Upload APK to release
         uses: softprops/action-gh-release@v1
         with:
