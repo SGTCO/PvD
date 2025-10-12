@@ -9,37 +9,41 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 取得你的 repo
+      # 🧭 取得 Repo
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 安裝 Node.js
+      # ⚙️ 設定 Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18
 
-      # 安裝 Java 17 (Temurin)
+      # ☕ 安裝 Java 17 (Temurin)
       - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
 
-      # 安裝 Capacitor CLI
-      - name: Install Capacitor CLI
+      # 📦 安裝前端依賴並編譯 Web 專案
+      - name: Install dependencies & build web app
+        working-directory: app
         run: |
-          npm install -g @capacitor/cli @capacitor/android
+          npm ci
+          npm run build
 
-      # 建立 android 專案資料夾
+      # ⚡ 建立 Capacitor 專案
       - name: Generate Android project (Capacitor)
         working-directory: app
         run: |
-          npx cap init "PvDWebApp" "com.sgtco.pvd" --web-dir app/public
+          npx cap init "PvDWebApp" "com.sgtco.pvd" --web-dir public --npm-client npm
+          npm install @capacitor/android
           npx cap add android
 
-      # 🚫 移除 @capacitor/android 內建的 Java 21 toolchain
+      # 🚫 修正 @capacitor/android 的 JDK 版本要求
       - name: Force downgrade Capacitor Android toolchain to Java 17
+        working-directory: app
         run: |
           echo "🔧 Removing toolchain JDK 21 requirement from @capacitor/android ..."
           find node_modules/@capacitor/android -type f -name "build.gradle*" -print0 | xargs -0 sed -i \
@@ -51,9 +55,9 @@ jobs:
           echo "✅ Capacitor Android toolchain patched to Java 17"
 
       # 🔧 強制 Android Gradle 使用 Java 17 編譯
-      - name: Patch Android Gradle files to use Java 17 & diagnostics
+      - name: Patch Android Gradle files to use Java 17
+        working-directory: app
         run: |
-          set -eu
           echo "🔧 Patching Android Gradle config for Java 17..."
           find android -type f -name "build.gradle*" -print0 | while IFS= read -r -d '' file; do
             echo "Patching $file"
@@ -74,10 +78,9 @@ jobs:
             }
           EOF
           done
-
           echo "✅ Android Gradle files patched to Java 17"
 
-      # 確認 Java 版本
+      # ☕ 驗證 Java 版本
       - name: Verify Java version
         run: |
           java -version
@@ -86,8 +89,8 @@ jobs:
 
       # 🧩 建立 Gradle Wrapper（若不存在）
       - name: Ensure Gradle Wrapper
+        working-directory: app/android
         run: |
-          cd android
           if [ ! -f gradlew ]; then
             echo "gradlew not found — installing Gradle wrapper..."
             gradle wrapper
@@ -96,13 +99,21 @@ jobs:
 
       # 🚀 編譯 APK
       - name: Build Android APK
+        working-directory: app/android
         run: |
-          cd android
           ./gradlew assembleDebug --no-daemon --stacktrace
 
-      # 📦 上傳成品到 GitHub Artifacts
+      # 📦 上傳 APK 成品到 Artifacts
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: PvD-debug-apk
-          path: android/app/build/outputs/apk/debug/*.apk
+          path: app/android/app/build/outputs/apk/debug/*.apk
+
+      # 🪶 自動附加到 Release（可選）
+      - name: Attach APK to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: app/android/app/build/outputs/apk/debug/*.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
