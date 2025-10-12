@@ -33,6 +33,7 @@ jobs:
 
       # 建立 android 專案資料夾
       - name: Generate Android project (Capacitor)
+        working-directory: app
         run: |
           npx cap init "PvDWebApp" "com.sgtco.pvd" --web-dir app/public
           npx cap add android
