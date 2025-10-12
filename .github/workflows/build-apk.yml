@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ 取得 repo
+      # 1️⃣ 取得你的 repo
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -19,7 +19,7 @@ jobs:
         with:
           node-version: 20
 
-      # 3️⃣ 建立 npm 專案 + 安裝 Capacitor
+      # 3️⃣ 初始化 npm 專案 + 安裝 Capacitor
       - name: Setup npm and Capacitor
         run: |
           npm init -y
@@ -36,7 +36,7 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      # 6️⃣ 複製網站檔案
+      # 6️⃣ 複製網站檔案（排除 app/.github/.git）
       - name: Copy website files
         shell: bash
         run: |
@@ -45,40 +45,69 @@ jobs:
           cp -r !(app|.github|.git|node_modules) app/public/
           echo "✅ Website files copied to app/public"
 
-      # 7️⃣ 初始化 Capacitor Android 專案
+      # 7️⃣ 初始化 Capacitor 專案與 Android 平台
       - name: Initialize Capacitor and Android
         run: |
           npx cap init "PvDWebApp" "com.sgtco.pvd" --web-dir app/public
           npx cap add android
 
-      # 8️⃣ 全面修正 Gradle Java 設定（覆蓋所有模組）
-      - name: Force all Gradle modules to use Java 17
+      # 8️⃣ 全面強制 Java 17 並補齊必要的 Android SDK 設定
+      - name: Force Gradle modules to use Java 17
         run: |
-          find android -type f -name "*.gradle" -print0 | xargs -0 sed -i \
+          export JAVA_HOME=/usr/lib/jvm/temurin-17-jdk-amd64
+          export PATH="$JAVA_HOME/bin:$PATH"
+
+          # 設定 Gradle 屬性
+          echo "org.gradle.java.home=$JAVA_HOME" >> android/gradle.properties
+          echo "org.gradle.jvmargs=-Xmx2g -Dfile.encoding=UTF-8" >> android/gradle.properties
+
+          # 若 app/build.gradle 尚未指定 compileSdkVersion，補上預設
+          sed -i '/android {/a\
+              compileSdkVersion 34\
+              defaultConfig {\
+                  targetSdkVersion 34\
+                  minSdkVersion 22\
+              }\
+              compileOptions {\
+                  sourceCompatibility JavaVersion.VERSION_17\
+                  targetCompatibility JavaVersion.VERSION_17\
+              }' android/app/build.gradle || true
+
+          # 全面替換任何殘留的 Java 21 或 Kotlin 21 設定
+          find android -type f \( -name "*.gradle" -o -name "*.gradle.kts" \) -print0 | xargs -0 sed -i \
             -e 's/JavaVersion.VERSION_21/JavaVersion.VERSION_17/g' \
+            -e 's/sourceCompatibility = JavaVersion.VERSION_21/sourceCompatibility = JavaVersion.VERSION_17/g' \
+            -e 's/targetCompatibility = JavaVersion.VERSION_21/targetCompatibility = JavaVersion.VERSION_17/g' \
             -e 's/sourceCompatibility = 21/sourceCompatibility = 17/g' \
             -e 's/targetCompatibility = 21/targetCompatibility = 17/g' \
-            -e 's/sourceCompatibility JavaVersion.VERSION_21/sourceCompatibility JavaVersion.VERSION_17/g' \
-            -e 's/targetCompatibility JavaVersion.VERSION_21/targetCompatibility JavaVersion.VERSION_17/g'
-          echo "✅ All Gradle files patched to Java 17"
+            -e 's/jvmTarget = "21"/jvmTarget = "17"/g'
 
-      # 9️⃣ 在 gradle.properties 明確指定 Java 17
-      - name: Force Gradle to use Java 17 globally
+          echo "✅ All Gradle modules patched for Java 17 and Android SDK 34"
+
+      - name: Verify Java version
         run: |
-          echo "org.gradle.java.home=/usr/lib/jvm/temurin-17-jdk-amd64" >> android/gradle.properties
-          echo "android.compileOptions.sourceCompatibility=17" >> android/gradle.properties
-          echo "android.compileOptions.targetCompatibility=17" >> android/gradle.properties
-          echo "✅ gradle.properties updated"
+          java -version
+          javac -version
+          echo "JAVA_HOME=$JAVA_HOME"
 
-      # 9️⃣-2 打包 APK
+      # 9️⃣ 打包 APK
       - name: Build Android APK
         run: |
           export JAVA_HOME=/usr/lib/jvm/temurin-17-jdk-amd64
+          export PATH="$JAVA_HOME/bin:$PATH"
           cd android
           ./gradlew assembleDebug
           echo "✅ APK build finished"
 
-      # 🔟 上傳到 Release
+      # 🔟 上傳問題報告（若失敗可下載查看）
+      - name: Upload Gradle problem report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gradle-problems-report
+          path: android/build/reports/problems
+
+      # ⓫ 上傳 APK 到 Release
       - name: Upload APK to release
         uses: softprops/action-gh-release@v1
         with:
