@@ -9,182 +9,99 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1 取得你的 repo
+      # 取得你的 repo
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2 安裝 Node.js
+      # 安裝 Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 18
 
-      # 3 初始化 npm 專案 + 安裝 Capacitor
-      - name: Setup npm and Capacitor
-        run: |
-          npm init -y
-          npm install @capacitor/core @capacitor/cli @capacitor/android --save-dev
-
-      # 4 安裝 Android SDK
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      # 5 安裝 Java 17
+      # 安裝 Java 17 (Temurin)
       - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '17'
+          distribution: temurin
+          java-version: 17
 
-      # 6 複製網站檔案（排除 .github/.git）
-      - name: Copy website files for Capacitor
-        shell: bash
-        run: |
-          mkdir -p app/public
-          shopt -s extglob
-          # 複製 repo 根目錄下的所有靜態網站檔案（排除掉 CI 設定與 node_modules）
-          cp -r !(android|app|.github|.git|node_modules) app/public/ 2>/dev/null || true
-          echo "✅ Website files copied to app/public"
-
-      # 7 建立 Android 專案
-      - name: Generate Android project (Capacitor)
+      # 安裝 Capacitor CLI
+      - name: Install Capacitor CLI
         run: |
           npm install -g @capacitor/cli @capacitor/android
+
+      # 建立 android 專案資料夾
+      - name: Generate Android project (Capacitor)
+        run: |
+          npx cap init "PvDWebApp" "com.sgtco.pvd" --web-dir app/public
           npx cap add android
 
-      # 8 初始化 Capacitor 專案與 Android 平台
+      # 🚫 移除 @capacitor/android 內建的 Java 21 toolchain
       - name: Force downgrade Capacitor Android toolchain to Java 17
         run: |
           echo "🔧 Removing toolchain JDK 21 requirement from @capacitor/android ..."
-          find node_modules/@capacitor/android -type f -name "build.gradle.kts" -print0 | xargs -0 sed -i \
-            -e '/languageVersion\.set(JavaLanguageVersion\.of(21))/d' \
+          find node_modules/@capacitor/android -type f -name "build.gradle*" -print0 | xargs -0 sed -i \
             -e '/toolchain {/,/}/d' \
+            -e '/languageVersion\.set(JavaLanguageVersion\.of(21))/d' \
+            -e 's/JavaLanguageVersion\.of(21)/JavaLanguageVersion.of(17)/g' \
             -e 's/JavaVersion.VERSION_21/JavaVersion.VERSION_17/g' \
-            -e 's/JavaLanguageVersion.of(21)/JavaLanguageVersion.of(17)/g' \
-            -e 's/sourceCompatibility = 21/sourceCompatibility = 17/g' \
-            -e 's/targetCompatibility = 21/targetCompatibility = 17/g' \
-            -e 's/jvmTarget = "21"/jvmTarget = "17"/g' || true
+            -e 's/jvmTarget = "21"/jvmTarget = "17"/g'
           echo "✅ Capacitor Android toolchain patched to Java 17"
 
-      - name: Patch Capacitor Android source in node_modules to use Java 17
-        run: |
-          echo "🔧 Patching @capacitor/android Gradle scripts..."
-          find node_modules/@capacitor/android -type f -name "*.gradle.kts" -print0 | xargs -0 sed -i \
-            -e 's/JavaVersion.VERSION_21/JavaVersion.VERSION_17/g' \
-            -e 's/sourceCompatibility = JavaVersion.VERSION_21/sourceCompatibility = JavaVersion.VERSION_17/g' \
-            -e 's/targetCompatibility = JavaVersion.VERSION_21/targetCompatibility = JavaVersion.VERSION_17/g' \
-            -e 's/JavaLanguageVersion.of(21)/JavaLanguageVersion.of(17)/g' \
-            -e 's/jvmTarget = "21"/jvmTarget = "17"/g' || true
-          echo "✅ Patched all @capacitor/android Gradle files to Java 17"
-
+      # 🔧 強制 Android Gradle 使用 Java 17 編譯
       - name: Patch Android Gradle files to use Java 17 & diagnostics
         run: |
           set -eu
+          echo "🔧 Patching Android Gradle config for Java 17..."
+          find android -type f -name "build.gradle*" -print0 | while IFS= read -r -d '' file; do
+            echo "Patching $file"
+            sed -i '/sourceCompatibility/d' "$file" || true
+            sed -i '/targetCompatibility/d' "$file" || true
+            sed -i '/jvmTarget/d' "$file" || true
+            cat <<'EOF' >> "$file"
 
-          # 設定 JDK 17 環境
-          export JAVA_HOME=/usr/lib/jvm/temurin-17-jdk-amd64
-          export PATH="$JAVA_HOME/bin:$PATH"
+            android {
+                compileOptions {
+                    sourceCompatibility = JavaVersion.VERSION_17
+                    targetCompatibility = JavaVersion.VERSION_17
+                }
+            }
 
-          # 確保 gradle.properties 指向 JDK17
-          mkdir -p android
-          echo "org.gradle.java.home=$JAVA_HOME" >> android/gradle.properties
-          echo "org.gradle.jvmargs=-Xmx2g -Dfile.encoding=UTF-8" >> android/gradle.properties
-
-          # 對所有 gradle / gradle.kts 檔做目標性替換（不會在找不到檔案時失敗）
-          find android -type f \( -name "*.gradle" -o -name "*.gradle.kts" \) -print0 | xargs -0 -r sed -i \
-            -e 's/JavaVersion.VERSION_21/JavaVersion.VERSION_17/g' \
-            -e 's/sourceCompatibility = JavaVersion.VERSION_21/sourceCompatibility = JavaVersion.VERSION_17/g' \
-            -e 's/targetCompatibility = JavaVersion.VERSION_21/targetCompatibility = JavaVersion.VERSION_17/g' \
-            -e 's/sourceCompatibility = 21/sourceCompatibility = 17/g' \
-            -e 's/targetCompatibility = 21/targetCompatibility = 17/g' \
-            -e 's/jvmTarget = "21"/jvmTarget = "17"/g' \
-            -e 's/JavaLanguageVersion.of(21)/JavaLanguageVersion.of(17)/g' || true
-
-          # 若 capacior-android 的 build.gradle.kts 存在，確保最少新增 java { ... } 區塊 (append)
-          CAP_FILE="android/capacitor-android/build.gradle.kts"
-          if [ -f "$CAP_FILE" ]; then
-            echo "Patching ${CAP_FILE} (append safe java { ... } block) ..."
-            # 為避免縮排/解析問題，我們向檔尾 *append* 一個 java{} 區塊（若原本有21設定，已被上面 sed 改掉）
-            printf '%s\n' "" "java {" "    sourceCompatibility = JavaVersion.VERSION_17" "    targetCompatibility = JavaVersion.VERSION_17" "}" >> "$CAP_FILE"
-          fi
-
-          # 同樣處理 cordova plugins 檔（如果存在）
-          CORDOVA_FILE="android/capacitor-cordova-android-plugins/build.gradle.kts"
-          if [ -f "$CORDOVA_FILE" ]; then
-            echo "Patching ${CORDOVA_FILE} (append safe java { ... } block) ..."
-            printf '%s\n' "" "java {" "    sourceCompatibility = JavaVersion.VERSION_17" "    targetCompatibility = JavaVersion.VERSION_17" "}" >> "$CORDOVA_FILE"
-          fi
-
-          # 確保 app module 有 compileSdk / compileOptions（若 android{} 存在則插入）
-          if [ -f "android/app/build.gradle" ]; then
-            if grep -q "android {" android/app/build.gradle; then
-              sed -n '1,120p' android/app/build.gradle | sed -n '1,120p' >/dev/null || true
-              sed -i '/android {/a\
-                  compileSdkVersion 34\
-                  defaultConfig {\
-                      targetSdkVersion 34\
-                      minSdkVersion 22\
-                  }\
-                  compileOptions {\
-                      sourceCompatibility JavaVersion.VERSION_17\
-                      targetCompatibility JavaVersion.VERSION_17\
-                  }' android/app/build.gradle || true
-            fi
-          fi
-
-          # 列出所有仍含 21 的檔案與行，供診斷
-          echo "---- Remaining 21 matches (if any) ----"
-          grep -nH -E 'VERSION_21|JavaLanguageVersion.of\(21\)|jvmTarget = \"21\"|sourceCompatibility = 21|targetCompatibility = 21' android || true
-          echo "---- end ----"
-
-          # 顯示已修改過的關鍵檔案開頭，方便確認
-          for f in android/capacitor-android/build.gradle.kts android/capacitor-cordova-android-plugins/build.gradle.kts android/app/build.gradle; do
-            if [ -f "$f" ]; then
-              echo "===== HEAD of $f ====="
-              sed -n '1,120p' "$f" || true
-            fi
+            kotlinOptions {
+                jvmTarget = "17"
+            }
+          EOF
           done
 
+          echo "✅ Android Gradle files patched to Java 17"
+
+      # 確認 Java 版本
       - name: Verify Java version
         run: |
           java -version
           javac -version
           echo "JAVA_HOME=$JAVA_HOME"
 
-      # 9 打包 APK
-      - name: Build Android APK
+      # 🧩 建立 Gradle Wrapper（若不存在）
+      - name: Ensure Gradle Wrapper
         run: |
-          set -eu
-          export JAVA_HOME=/usr/lib/jvm/temurin-17-jdk-amd64
-          export PATH="$JAVA_HOME/bin:$PATH"
-
           cd android
-
-          # 如果 gradlew 不存在，自動產生 Gradle wrapper
-          if [ ! -f "./gradlew" ]; then
+          if [ ! -f gradlew ]; then
             echo "gradlew not found — installing Gradle wrapper..."
             gradle wrapper
           fi
+          chmod +x gradlew
 
-          chmod +x ./gradlew
-
-          echo "🧱 Starting Gradle build..."
+      # 🚀 編譯 APK
+      - name: Build Android APK
+        run: |
+          cd android
           ./gradlew assembleDebug --no-daemon --stacktrace
 
-          echo "✅ Build finished. APKs should be in app/build/outputs/apk/debug/"
-
-      # 10 上傳問題報告（若失敗可下載查看）
-      - name: Upload Gradle problem report
-        if: always()
+      # 📦 上傳成品到 GitHub Artifacts
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: gradle-problems-report
-          path: android/build/reports/problems
-
-      # 11 上傳 APK 到 Release
-      - name: Upload APK to release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: android/app/build/outputs/apk/debug/app-debug.apk
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: PvD-debug-apk
+          path: android/app/build/outputs/apk/debug/*.apk
