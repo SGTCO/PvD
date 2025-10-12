@@ -53,6 +53,19 @@ jobs:
           npx cap add android
 
       # 8 初始化 Capacitor 專案與 Android 平台
+      - name: Force downgrade Capacitor Android toolchain to Java 17
+        run: |
+          echo "🔧 Removing toolchain JDK 21 requirement from @capacitor/android ..."
+          find node_modules/@capacitor/android -type f -name "build.gradle.kts" -print0 | xargs -0 sed -i \
+            -e '/languageVersion\.set(JavaLanguageVersion\.of(21))/d' \
+            -e '/toolchain {/,/}/d' \
+            -e 's/JavaVersion.VERSION_21/JavaVersion.VERSION_17/g' \
+            -e 's/JavaLanguageVersion.of(21)/JavaLanguageVersion.of(17)/g' \
+            -e 's/sourceCompatibility = 21/sourceCompatibility = 17/g' \
+            -e 's/targetCompatibility = 21/targetCompatibility = 17/g' \
+            -e 's/jvmTarget = "21"/jvmTarget = "17"/g' || true
+          echo "✅ Capacitor Android toolchain patched to Java 17"
+
       - name: Patch Capacitor Android source in node_modules to use Java 17
         run: |
           echo "🔧 Patching @capacitor/android Gradle scripts..."
