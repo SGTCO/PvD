@@ -30956,7 +30956,7 @@ Config.saves.isAllowed = () => {
 };
 
 if (idb.updateSettings) idb.updateSettings("useDelta", true);
-idb.footerHTML = `點此支持開發者! <a target="_blank" class="link-external" href="https://vrelnir.fanbox.cc/" tabindex="0">Vrelnir</a>;
+idb.footerHTML = `Support development: <a target="_blank" class="link-external" href="https://vrelnir.fanbox.cc/" tabindex="0">Fanbox</a>`;
 
 function onLoad(save) {
 	// some flags for version update. ideally, all updating should be done here in onLoad, but we don't live in an ideal world
@@ -911138,32 +911138,32 @@ Jordan materialises from the background radiation of the universe.
 	l10nStrings.ok       = '確認';
 
 	/* Errors. */
-	l10nStrings.errorTitle              = '錯誤';
-	l10nStrings.errorToggle             = '打開/關閉錯誤訊息介面',
+	l10nStrings.errorTitle              = '出錯';
+	l10nStrings.errorToggle             = '打開/關閉錯誤視窗',
 	l10nStrings.errorNonexistentPassage = '段落"{passage}"不存在';
 	l10nStrings.errorSaveDiskLoadFailed = '從本地讀取存檔文件失敗',
-	l10nStrings.errorSaveMissingData    = '存檔缺少必須的數據，可能被讀取的文件不是存檔或者存檔已損壞';
-	l10nStrings.errorSaveIdMismatch     = '存檔來自錯誤的{identity}';
+	l10nStrings.errorSaveMissingData    = '存檔缺少必要數據，可能是讀取的文件非存檔，或存檔已損壞';
+	l10nStrings.errorSaveIdMismatch     = '來自{identity}的存檔有誤';
 
 	/* Warnings. */
-	l10nStrings._warningIntroLacking  = '你的瀏覽器可能缺乏或者已停用';
-	l10nStrings._warningOutroDegraded = '，所以{identity}在受限制模式中執行。你可以繼續執行，但是一些內容可能無法正常運作。';
-	l10nStrings.warningNoWebStorage   = '{_warningIntroLacking} Web Storage API {_warningOutroDegraded}';
-	l10nStrings.warningDegraded       = '{_warningIntroLacking} {identity}需要的功能 {_warningOutroDegraded}';
-
+	l10nStrings._warningIntroLacking  = '你的瀏覽器可能損壞，或限制了';
+	l10nStrings._warningOutroDegraded = '，因此{identity}在受限制模式中運行。你可以繼續運行，但部分內容可能出現異常。';
+	l10nStrings.warningNoWebStorage   = '{_warningIntroLacking} Web Storage API{_warningOutroDegraded}';
+	l10nStrings.warningDegraded       = '{_warningIntroLacking}{identity}所需功能{_warningOutroDegraded}';
+	
 	/* Debug Bar. */
-	l10nStrings.debugBarToggle      = '打開/關閉除錯模式',
-	l10nStrings.debugBarNoWatches   = '\u2014 尚無監視組 \u2014';
-	l10nStrings.debugBarAddWatch    = '添加監視';
-	l10nStrings.debugBarDeleteWatch = '刪除監視';
-	l10nStrings.debugBarWatchAll    = '監視全部';
-	l10nStrings.debugBarWatchNone   = '刪除全部';
-	l10nStrings.debugBarLabelAdd    = '添加';
-	l10nStrings.debugBarLabelWatch  = '監視';
+	l10nStrings.debugBarToggle      = '打開/關閉除錯欄',
+	l10nStrings.debugBarNoWatches   = '\u2014 未設定監視 \u2014',
+	l10nStrings.debugBarAddWatch    = '添加監視',
+	l10nStrings.debugBarDeleteWatch = '刪除監視',
+	l10nStrings.debugBarWatchAll    = '監視全部',
+	l10nStrings.debugBarWatchNone   = '刪除全部',
+	l10nStrings.debugBarLabelAdd    = '添加',
+	l10nStrings.debugBarLabelWatch  = '監視',
 	l10nStrings.debugBarLabelTurn   = '回合', // (noun) chance to act (in a game), moment, period
-	l10nStrings.debugBarLabelViews  = '介面';
-	l10nStrings.debugBarViewsToggle = '打開/關閉除錯介面',
-	l10nStrings.debugBarWatchToggle = '打開/關閉監視介面',
+	l10nStrings.debugBarLabelViews  = '視窗',
+	l10nStrings.debugBarViewsToggle = '打開/關閉除錯視窗',
+	l10nStrings.debugBarWatchToggle = '打開/關閉監視面板',
 
 	/* UI bar. */
 	l10nStrings.uiBarToggle   = '打開/關閉導航欄';
@@ -911174,72 +911174,72 @@ Jordan materialises from the background radiation of the universe.
 	/* Jump To. */
 	l10nStrings.jumptoTitle       = '跳到';
 	l10nStrings.jumptoTurn        = '轉到';
-	l10nStrings.jumptoUnavailable = '目前沒有跳躍點\u2026';
+	l10nStrings.jumptoUnavailable = '目前沒有可用的跳躍點\u2026';
 
 	/* Saves. */
 	l10nStrings.savesTitle       = '存檔';
-	l10nStrings.savesDisallowed  = '目前的段落不允許存檔';
-	l10nStrings.savesIncapable   = '{_warningIntroLacking}存檔所需的功能，因此本次遊戲的存檔功能已停用';
+	l10nStrings.savesDisallowed  = '在本段落中不允許存檔';
+	l10nStrings.savesIncapable   = '{_warningIntroLacking}支持存檔所需的功能，因此本次遊戲的存檔功能已被禁用';
 	l10nStrings.savesLabelAuto   = '自動存檔';
 	l10nStrings.savesLabelDelete = '刪除';
-	l10nStrings.savesLabelExport = '另存爲\u2026';
+	l10nStrings.savesLabelExport = '另存為\u2026';
 	l10nStrings.savesLabelImport = '讀取\u2026';
 	l10nStrings.savesLabelLoad   = '讀取';
-	l10nStrings.savesLabelClear  = '刪除全部';
+	l10nStrings.savesLabelClear  = '全部刪除';
 	l10nStrings.savesLabelSave   = '儲存';
-	l10nStrings.savesLabelSlot   = '儲存格';
-	l10nStrings.savesUnavailable = '未找到存檔儲存格\u2026';
+	l10nStrings.savesLabelSlot   = '存檔槽';
+	l10nStrings.savesUnavailable = '未找到存檔槽\u2026';
 	l10nStrings.savesUnknownDate = '未知';
 
 	/* idb related */
-	l10nStrings.savesDisallowedReplay     = '目前正在使用場景檢視器，因此無法使用儲檔系統。';
-	l10nStrings.savesExportReminder       = '警告：如果你清除了瀏覽器資料，此處的存檔也將遺失！請定時導出存檔！';
-	l10nStrings.savesHeaderSaveLoad       = '儲存/讀取';
+	l10nStrings.savesDisallowedReplay     = '目前正在使用場景查看器，無法正常儲存。';
+	l10nStrings.savesExportReminder       = '警告：如果你清除了瀏覽器緩存，此處的存檔也將丟失！請定時導出存檔！';
+	l10nStrings.savesHeaderSaveLoad       = '儲存/載入';
 	l10nStrings.savesHeaderIDName         = 'ID/名稱';
 	l10nStrings.savesHeaderDetails        = '描述';
 	l10nStrings.savesDescTitle            = '標題：';
 	l10nStrings.savesDescName             = '存檔名：';
 	l10nStrings.savesDescId               = '存檔 ID：';
 	l10nStrings.savesDescDate             = '日期：';
-	l10nStrings.savesPagerJump            = '跳到最近一次手動存檔';
+	l10nStrings.savesPagerJump            = '跳轉到最近一次手動儲存';
 	l10nStrings.savesPagerPage            = '頁數：';
 	l10nStrings.savesPagerSavesPerPage    = '每頁存檔個數：';
 	l10nStrings.savesOptionsConfirmOn     = '儲存時需要確認';
 	l10nStrings.savesOptionsOverwrite     = '覆蓋';
 	l10nStrings.savesOptionsUseLegacy     = '使用舊版儲存方式';
-	l10nStrings.savesWarningSaveOnSlot    = '儲存到儲存格 ';
-	l10nStrings.savesWarningOverwriteSlot = '覆蓋到儲存格 ';
+	l10nStrings.savesWarningSaveOnSlot    = '儲存存檔到槽 ';
+	l10nStrings.savesWarningOverwriteSlot = '覆蓋存檔到槽 ';
 	l10nStrings.savesWarningOverwriteID   = '存檔 ID 不匹配，是否繼續覆蓋？';
-	l10nStrings.savesWarningDeleteInSlot  = '清除存檔格：';
-	l10nStrings.savesWarningLoad          = '載入存檔格：';
+	l10nStrings.savesWarningDeleteInSlot  = '刪除存檔槽：';
+	l10nStrings.savesWarningLoad          = '載入存檔槽：';
 	l10nStrings.savesWarningDeleteAll     = '警告：你確定要刪除所有存檔嗎？';
-	l10nStrings.savesLabelToClipboard     = '儲存至剪貼簿\u2026';
+	l10nStrings.savesLabelToClipboard     = '儲存至剪貼板\u2026';
 
 	/* Settings. */
 	l10nStrings.settingsTitle = '設定';
 	l10nStrings.settingsOff   = '關閉';
 	l10nStrings.settingsOn    = '開啓';
-	l10nStrings.settingsReset = '重設為預設值';
+	l10nStrings.settingsReset = '重置為默認值';
 
 	/* Restart. */
-	l10nStrings.restartTitle  = '重啟遊戲';
-	l10nStrings.restartPrompt = '確定要重啟遊戲嗎？未儲存的進度將會遺失。';
+	l10nStrings.restartTitle  = '重新開始';
+	l10nStrings.restartPrompt = '你確定要重新開始嗎？未儲存的進度將會丟失。';
 
 	/* Share. */
 	l10nStrings.shareTitle = '分享';
 
-	/*Alert.*/
-	l10nStrings.alertTitle = '警告';
+	/* Alert */
+	l10nStrings.alertTitle = '警告',
 
 	/* Autoload. */
 	l10nStrings.autoloadTitle  = '自動載入';
 	l10nStrings.autoloadCancel = '前往最初的段落';
 	l10nStrings.autoloadOk     = '讀取自動存檔';
-	l10nStrings.autoloadPrompt = '有一個自動存檔，要讀取它還是前往最初的段落？';
+	l10nStrings.autoloadPrompt = '有一個自動存檔，讀取它還是前往最初的段落？';
 
 	/* Macros. */
-	l10nStrings.macroBackText   = '上一步';
-	l10nStrings.macroReturnText = '退出';
+	l10nStrings.macroBackText   = '返回上一步';
+	l10nStrings.macroReturnText = '返回/退出';
 })();
 
     };
